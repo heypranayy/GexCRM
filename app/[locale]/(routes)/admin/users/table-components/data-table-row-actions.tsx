@@ -21,11 +21,20 @@ import AlertModal from "@/components/modals/alert-modal";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Copy, Edit, MoreHorizontal, Shield, Trash, UserCheck, UserX } from "lucide-react";
+import { Copy, MoreHorizontal, Shield, Trash, UserCheck, UserX, IndianRupee } from "lucide-react";
 import { deleteUser } from "@/actions/admin/users/delete-user";
 import { activateUser } from "@/actions/admin/users/activate-user";
 import { deactivateUser } from "@/actions/admin/users/deactivate-user";
 import { setUserRole } from "@/actions/admin/users/set-role";
+import { updateUserSalary } from "@/actions/admin/users/update-user-salary";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -38,6 +47,8 @@ export function DataTableRowActions<TData>({
   const data = adminUserSchema.parse(row.original);
 
   const [open, setOpen] = useState(false);
+  const [salaryOpen, setSalaryOpen] = useState(false);
+  const [salaryValue, setSalaryValue] = useState("");
   const [loading, setLoading] = useState(false);
 
   const onCopy = (id: string) => {
@@ -114,6 +125,25 @@ export function DataTableRowActions<TData>({
     }
   };
 
+  const onUpdateSalary = async () => {
+    const amount = parseFloat(salaryValue);
+    if (isNaN(amount) || amount < 0) {
+      toast.error("Enter a valid salary amount");
+      return;
+    }
+    try {
+      setLoading(true);
+      await updateUserSalary(data.id, amount);
+      router.refresh();
+      toast.success("Base salary updated");
+      setSalaryOpen(false);
+    } catch (error: any) {
+      toast.error(error.message ?? "Failed to update salary");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <AlertModal
@@ -122,6 +152,24 @@ export function DataTableRowActions<TData>({
         onConfirm={onDelete}
         loading={loading}
       />
+      <Dialog open={salaryOpen} onOpenChange={setSalaryOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Base Salary — {data.name ?? data.email}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              type="number"
+              placeholder="Monthly base salary (₹)"
+              value={salaryValue}
+              onChange={(e) => setSalaryValue(e.target.value)}
+            />
+            <Button onClick={onUpdateSalary} disabled={loading}>
+              Save Salary
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant={"ghost"} className="h-8 w-8 p-0">
@@ -162,6 +210,16 @@ export function DataTableRowActions<TData>({
               </DropdownMenuItem>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => {
+              setSalaryValue(data.baseSalary != null ? String(data.baseSalary) : "");
+              setSalaryOpen(true);
+            }}
+          >
+            <IndianRupee className="mr-2 w-4 h-4" />
+            Set Base Salary
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setOpen(true)}>
             <Trash className="mr-2 w-4 h-4" />

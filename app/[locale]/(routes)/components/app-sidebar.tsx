@@ -18,9 +18,11 @@ import getProjectsMenuItem from "./menu-items/Projects";
 import getEmailsMenuItem from "./menu-items/Emails";
 import getReportsMenuItem from "./menu-items/Reports";
 import getDocumentsMenuItem from "./menu-items/Documents";
-import getInvoicesMenuItem from "./menu-items/Invoices";
+import getSalesMenuItem from "./menu-items/Sales";
 import getAdministrationMenuItem from "./menu-items/Administration";
 import getCampaignsMenuItem from "./menu-items/Campaigns";
+import getHrMenuItem from "./menu-items/Hr";
+import getCeoMenuItem from "./menu-items/Ceo";
 
 /**
  * AppSidebar Component - Task Groups 1.2, 2.2-2.7, 3.1, 5.3, 5.4
@@ -105,8 +107,16 @@ export function AppSidebar({
     getEmailsMenuItem({ title: dict?.emails || "Emails" }),
     getReportsMenuItem({ title: dict?.reports || "Reports" }),
     getDocumentsMenuItem({ title: dict?.documents || "Documents" }),
-    getInvoicesMenuItem({ title: dict?.invoices || "Invoices" }),
+    getSalesMenuItem({ title: dict?.sales || "Sales" }),
+    getHrMenuItem({ title: dict?.hr || "HR & People" }),
   ];
+
+  // CEO / Executive dashboards — admin and manager
+  if (session?.user?.role === "admin" || session?.user?.role === "manager") {
+    navItems.push(
+      getCeoMenuItem({ title: dict?.executive || "Executive" }),
+    );
+  }
 
   // Administration: admin users only
   if (session?.user?.role === "admin") {
@@ -133,24 +143,24 @@ export function AppSidebar({
             isExpanded ? "gap-x-4" : "justify-center",
           )}
         >
-          {/* "N" Branding Symbol with rotation animation */}
+          {/* Gexart branding symbol */}
           <div
             className={cn(
-              "flex-shrink-0 border rounded-full px-4 py-2 transition-transform duration-500",
+              "flex-shrink-0 border rounded-full px-3 py-2 font-bold text-primary transition-transform duration-500",
               isExpanded && "rotate-[360deg]",
             )}
           >
-            N
+            G
           </div>
 
           {/* App Name - visible when expanded, hidden when collapsed */}
           <h1
             className={cn(
-              "origin-left font-medium text-xl transition-all overflow-hidden whitespace-nowrap",
+              "origin-left font-semibold text-lg transition-all overflow-hidden whitespace-nowrap",
               !isExpanded ? "w-0 opacity-0" : "w-auto opacity-100",
             )}
           >
-            {process.env.NEXT_PUBLIC_APP_NAME || "NextCRM"}
+            {process.env.NEXT_PUBLIC_APP_NAME || "Gexart CRM"}
           </h1>
         </div>
       </SidebarHeader>

@@ -45,7 +45,7 @@ export interface PdfPaymentInfo {
 }
 
 export interface InvoicePdfData {
-  type: "INVOICE" | "CREDIT_NOTE" | "PROFORMA";
+  type: "INVOICE" | "CREDIT_NOTE" | "PROFORMA" | "QUOTATION" | "PURCHASE_ORDER";
   number: string;
   issueDate: string;
   dueDate?: string;
@@ -133,6 +133,8 @@ function typeTitle(type: InvoicePdfData["type"], t: PdfStrings): string {
   switch (type) {
     case "CREDIT_NOTE": return t.creditNote;
     case "PROFORMA": return t.proforma;
+    case "QUOTATION": return "Quotation";
+    case "PURCHASE_ORDER": return "Purchase Order";
     default: return t.invoice;
   }
 }

@@ -1,18 +1,18 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { emailOTP, testUtils } from "better-auth/plugins";
 import { admin as adminPlugin } from "better-auth/plugins";
 import { prismadb } from "@/lib/prisma";
 import { ac, admin, manager, user } from "@/lib/auth-permissions";
 import { newUserNotify } from "@/lib/new-user-notify";
-import resendHelper from "@/lib/resend";
-
-const isDemo = process.env.NEXT_PUBLIC_APP_URL === "https://demo.nextcrm.io";
 
 export const auth = betterAuth({
   database: prismaAdapter(prismadb, { provider: "postgresql" }),
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  secret:
+    process.env.BETTER_AUTH_SECRET ||
+    (process.env.NODE_ENV !== "production"
+      ? "gexart-crm-local-dev-secret-32chars-min"
+      : undefined),
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL,
   advanced: {
     database: {
       generateId: "uuid",
@@ -20,8 +20,8 @@ export const auth = betterAuth({
   },
 
   session: {
-    expiresIn: 60 * 60 * 24 * 7,       // 7 days
-    updateAge: 60 * 60 * 24,            // refresh every 24 hours
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
   },
 
   user: {
@@ -39,7 +39,7 @@ export const auth = betterAuth({
       },
       userStatus: {
         type: "string",
-        defaultValue: isDemo ? "ACTIVE" : "PENDING",
+        defaultValue: "ACTIVE",
         input: false,
       },
       userLanguage: {
@@ -55,42 +55,23 @@ export const auth = betterAuth({
     },
   },
 
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_ID!,
-      clientSecret: process.env.GOOGLE_SECRET!,
-    },
-  },
+  socialProviders:
+    process.env.GOOGLE_ID && process.env.GOOGLE_SECRET
+      ? {
+          google: {
+            clientId: process.env.GOOGLE_ID,
+            clientSecret: process.env.GOOGLE_SECRET,
+          },
+        }
+      : {},
 
   emailAndPassword: {
-    enabled: false,
+    enabled: true,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
   },
 
   plugins: [
-    emailOTP({
-      sendVerificationOTP: async ({ email, otp, type }) => {
-        try {
-          const resend = await resendHelper();
-          await resend.emails.send({
-            from: `${process.env.NEXT_PUBLIC_APP_NAME} <${process.env.EMAIL_FROM}>`,
-            to: email,
-            subject: `Your verification code: ${otp}`,
-            text: `Your one-time verification code is: ${otp}\n\nThis code expires in 5 minutes.\n\nIf you did not request this, please ignore this email.`,
-          });
-        } catch (e) {
-          // In dev/test, email sending may fail — OTP is captured by testUtils plugin
-          if (process.env.NODE_ENV !== "production") {
-            console.log(`[Auth] OTP email send failed for ${email}, but captured by testUtils`);
-          } else {
-            throw e;
-          }
-        }
-      },
-    }),
-    // testUtils captures OTPs for E2E testing — only enabled in non-production
-    ...(process.env.NODE_ENV !== "production"
-      ? [testUtils({ captureOTP: true })]
-      : []),
     adminPlugin({
       ac,
       roles: { admin, manager, user },
@@ -107,15 +88,13 @@ export const auth = betterAuth({
 
   callbacks: {
     async onUserCreated(user: { id: string }) {
-      // Check if this is the first user — make them admin
       const count = await prismadb.users.count();
       if (count === 1) {
         await prismadb.users.update({
           where: { id: user.id },
           data: { role: "admin", userStatus: "ACTIVE" },
         });
-      } else if (!isDemo) {
-        // Notify admins about new pending user
+      } else {
         const dbUser = await prismadb.users.findUnique({ where: { id: user.id } });
         if (dbUser) {
           await newUserNotify(dbUser);

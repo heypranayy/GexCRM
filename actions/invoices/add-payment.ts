@@ -52,6 +52,7 @@ export async function addPayment(raw: unknown) {
         paidTotal: newPaidTotal.toString(),
         balanceDue: Decimal.max(newBalanceDue, new Decimal(0)).toString(),
         status: newStatus,
+        lastPaymentMode: input.method,
         activity: {
           create: {
             actorId: user.id,

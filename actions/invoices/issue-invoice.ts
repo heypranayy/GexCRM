@@ -8,6 +8,8 @@ import { canIssueInvoice, type InvoiceStatus } from "@/lib/invoices/permissions"
 import { mapLegacyRole } from "@/lib/authz";
 import { consumeNextNumber } from "@/lib/invoices/numbering";
 import { fetchFxRate } from "@/lib/invoices/fx";
+import { generatePublicToken } from "@/lib/invoices/snapshot";
+import { getActiveCompanyId } from "@/lib/company/context";
 import { issueInvoiceSchema } from "@/types/invoice";
 import { renderInvoicePdf } from "@/lib/invoices/pdf/render";
 import { uploadInvoicePdf } from "@/lib/invoices/storage";
@@ -40,7 +42,10 @@ export async function issueInvoice(raw: unknown) {
     throw new Error("Invoice must have at least one line item");
   }
 
-  const settings = await prismadb.invoice_Settings.findFirst();
+  const companyId = await getActiveCompanyId();
+  const settings = companyId
+    ? await prismadb.invoice_Settings.findFirst({ where: { companyId } })
+    : await prismadb.invoice_Settings.findFirst();
   if (!settings) {
     throw new Error("Invoice settings not configured. Please configure in Admin > Invoices.");
   }
@@ -67,6 +72,7 @@ export async function issueInvoice(raw: unknown) {
         state: acct.billing_state ?? null,
         country: acct.billing_country ?? null,
         vat_id: acct.vat ?? null,
+        gstin: acct.vat ?? null,
         registration_id: acct.company_id ?? null,
       };
 
@@ -102,10 +108,12 @@ export async function issueInvoice(raw: unknown) {
           status: "ISSUED",
           number,
           seriesId,
+          companyId: companyId ?? invoice.companyId,
           issueDate,
           taxableSupplyDate,
           dueDate,
           billingSnapshot,
+          publicToken: invoice.publicToken ?? generatePublicToken(),
           baseCurrency: settings.baseCurrency,
           fxRateToBase: fxRate.toString(),
           subtotal: totals.subtotal.toString(),

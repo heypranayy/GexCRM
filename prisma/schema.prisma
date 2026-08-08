@@ -61,6 +61,7 @@ model crm_Accounts {
   emails             EmailsToAccounts[]
   accountProducts    crm_AccountProducts[]
   invoices           Invoices[]
+  subscriptions      Subscription[]
 
   @@index([assigned_to])
   @@index([industry])
@@ -717,6 +718,8 @@ model Boards {
   assigned_user Users?          @relation("assigned_user", fields: [user], references: [id])
   sections      Sections[]
   watchers      BoardWatchers[]
+  sprints       Sprint[]
+  milestones    Milestone[]
 
   @@index([user])
   @@index([createdBy])
@@ -872,6 +875,16 @@ model Tasks {
   assigned_section Sections?          @relation(fields: [section], references: [id])
   documents        DocumentsToTasks[]
 
+  // Gexart OS Project management links
+  sprintId         String?            @db.Uuid
+  sprint           Sprint?            @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  milestoneId      String?            @db.Uuid
+  milestone        Milestone?         @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  timeLogs         TimeLog[]
+  transferRequests TaskTransferRequest[]
+
+  workSessions     WorkSession[]
+
   @@index([user])
   @@index([section])
   @@index([createdBy])
@@ -881,6 +894,8 @@ model Tasks {
   @@index([dueDateAt])
   @@index([createdAt])
   @@index([user, taskStatus])
+  @@index([sprintId])
+  @@index([milestoneId])
 }
 
 model crm_Accounts_Tasks {
@@ -1026,12 +1041,45 @@ model Users {
   invoiceAttachments           Invoice_Attachments[] @relation("InvoiceAttachmentUploadedBy")
   invoiceActivity              Invoice_Activity[]    @relation("InvoiceActivityActor")
 
+  // Gexart OS Organization relations
+  companyId                    String?               @db.Uuid
+  company                      Company?              @relation(fields: [companyId], references: [id])
+  branchId                     String?               @db.Uuid
+  branch                       Branch?               @relation(fields: [branchId], references: [id])
+  departmentId                 String?               @db.Uuid
+  department                   Department?           @relation(fields: [departmentId], references: [id])
+  teamId                       String?               @db.Uuid
+  team                         Team?                 @relation(fields: [teamId], references: [id])
+  designationId                String?               @db.Uuid
+  designation                  Designation?          @relation(fields: [designationId], references: [id])
+  attendances                  Attendance[]
+  timeLogs                     TimeLog[]
+  shiftAssignments             ShiftAssignment[]
+  payouts                      Payout[]
+  workReports                  WorkReport[]
+  taskTransfersFrom            TaskTransferRequest[] @relation("TaskTransferFrom")
+  taskTransfersTo              TaskTransferRequest[] @relation("TaskTransferTo")
+  taskTransfersApproved        TaskTransferRequest[] @relation("TaskTransferApprover")
+  dashboardLayouts             DashboardLayout[]
+  baseSalary                   Decimal?              @db.Decimal(14, 2)
+  leaveBalances                LeaveBalance[]
+  leaveApplications            LeaveApplication[]
+  leaveReviews                 LeaveApplication[]    @relation("LeaveReviewer")
+  workSessions                 WorkSession[]
+  productivityChecks           ProductivityCheck[]
+  workCheckResponses           WorkCheckResponse[]
+
   @@index([email])
   @@index([userStatus])
   @@index([userLanguage])
   @@index([role])
   @@index([created_on])
   @@index([lastLoginAt])
+  @@index([companyId])
+  @@index([branchId])
+  @@index([departmentId])
+  @@index([teamId])
+  @@index([designationId])
 }
 
 model crm_AuditLog {
@@ -1822,6 +1870,8 @@ enum Invoice_Type {
   INVOICE
   CREDIT_NOTE
   PROFORMA
+  QUOTATION
+  PURCHASE_ORDER
 }
 
 model Invoices {
@@ -1875,12 +1925,34 @@ model Invoices {
   pdfStorageKey         String?
   pdfGeneratedAt        DateTime?
 
+  companyId             String?          @db.Uuid
+  company               Company?         @relation(fields: [companyId], references: [id])
+  branchId              String?          @db.Uuid
+  branch                Branch?          @relation(fields: [branchId], references: [id])
+  publicToken           String?          @unique
+  referenceNumber       String?
+  poNumber              String?
+  paymentTerms          String?
+  salespersonId         String?          @db.Uuid
+  termsAndConditions    String?
+  invoiceLevelDiscount  Decimal          @default(0) @db.Decimal(14, 2)
+  invoiceLevelDiscountPercent Decimal    @default(0) @db.Decimal(5, 2)
+  roundOff              Decimal          @default(0) @db.Decimal(14, 2)
+  taxInclusive          Boolean          @default(false)
+  businessSnapshot      Json?
+  convertedFromId       String?          @db.Uuid
+  convertedFrom         Invoices?        @relation("ConvertedFrom", fields: [convertedFromId], references: [id])
+  convertedTo           Invoices[]       @relation("ConvertedFrom")
+  pdfTemplate           String?          @default("classic")
+  lastPaymentMode       String?
+
   searchVector          Unsupported("tsvector")?  @map("search_vector")
 
   lineItems             Invoice_LineItems[]
   payments              Invoice_Payments[]
   activity              Invoice_Activity[]
   attachments           Invoice_Attachments[]
+  gstMeta               Invoice_GstMeta?
 
   @@unique([seriesId, number])
   @@index([accountId])
@@ -1889,6 +1961,9 @@ model Invoices {
   @@index([dueDate])
   @@index([createdBy])
   @@index([originalInvoiceId])
+  @@index([companyId])
+  @@index([branchId])
+  @@index([publicToken])
 }
 
 model Invoice_LineItems {
@@ -1909,10 +1984,157 @@ model Invoice_LineItems {
   lineVat         Decimal    @db.Decimal(14, 2)
   lineTotal       Decimal    @db.Decimal(14, 2)
 
+  // GST India compliance fields
+  hsnCode         String?    // HSN code for goods
+  sacCode         String?    // SAC code for services
+  unit            String?    // e.g., "pcs", "hrs", "kg"
+  cgst            Decimal?   @db.Decimal(5, 2) // Central GST rate
+  sgst            Decimal?   @db.Decimal(5, 2) // State GST rate
+  igst            Decimal?   @db.Decimal(5, 2) // Integrated GST rate
+  cess            Decimal?   @db.Decimal(5, 2) // CESS rate
+  cgstAmount      Decimal?   @db.Decimal(14, 2) // Computed CGST amount
+  sgstAmount      Decimal?   @db.Decimal(14, 2) // Computed SGST amount
+  igstAmount      Decimal?   @db.Decimal(14, 2) // Computed IGST amount
+  cessAmount      Decimal?   @db.Decimal(14, 2) // Computed CESS amount
+
   @@index([invoiceId])
   @@index([productId])
   @@index([taxRateId])
 }
+
+// ============================================
+// GEXART OS — ENHANCED INVOICING (GST India)
+// ============================================
+
+/// GST-level invoice metadata — stored on the Invoices model via JSON or separate model
+model Invoice_GstMeta {
+  id                String    @id @default(uuid()) @db.Uuid
+  invoiceId         String    @unique @db.Uuid
+  invoice           Invoices  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  placeOfSupply     String?   // State code e.g., "27" for Maharashtra
+  supplierGstin     String?
+  customerGstin     String?
+  reverseCharge     Boolean   @default(false)
+  eWayBillNumber    String?
+  eInvoiceIrn       String?
+  eInvoiceStatus    String?   @default("NOT_GENERATED") // NOT_GENERATED, GENERATED, IRN_GENERATED, CANCELLED, FAILED
+  ackNumber         String?
+  ackDate           DateTime?
+  signedInvoice     String?
+  signedQr          String?
+  qrCode            String?
+  cancellationStatus String?
+  cancellationReason String?
+  cancellationDate  DateTime?
+  transportMode     String?   // road, rail, air, ship
+  vehicleNumber     String?
+  invoiceType       String?   // B2B, B2C, SEZ, Export, DebitNote, CreditNote
+  totalCgst         Decimal?  @db.Decimal(14, 2)
+  totalSgst         Decimal?  @db.Decimal(14, 2)
+  totalIgst         Decimal?  @db.Decimal(14, 2)
+  totalCess         Decimal?  @db.Decimal(14, 2)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([supplierGstin])
+  @@index([customerGstin])
+  @@index([eInvoiceStatus])
+}
+
+// ============================================
+// GEXART OS — HR SHIFT & PAYOUT SYSTEM
+// ============================================
+
+model Shift {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String   // e.g., "Morning", "Night", "General"
+  startTime     String   // e.g., "09:00" (HH:mm format)
+  endTime       String   // e.g., "18:00"
+  graceMinutes  Int      @default(15) // late-arrival grace
+  breakMinutes  Int      @default(60) // total break allowance
+  isNightShift  Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  companyId     String?  @db.Uuid
+  branchId      String?  @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  assignments   ShiftAssignment[]
+
+  @@index([companyId])
+  @@index([branchId])
+}
+
+model ShiftAssignment {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shiftId     String    @db.Uuid
+  shift       Shift     @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  startDate   DateTime  @db.Date // effective from
+  endDate     DateTime? @db.Date // effective until (null = ongoing)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, shiftId, startDate])
+  @@index([userId])
+  @@index([shiftId])
+}
+
+model Payout {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid
+  user            Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month           Int      // 1-12
+  year            Int      // e.g., 2026
+  baseSalary      Decimal  @db.Decimal(14, 2)
+  workingDays     Int      @default(0)
+  presentDays     Int      @default(0)
+  absentDays      Int      @default(0)
+  lateDays        Int      @default(0)
+  halfDays        Int      @default(0)
+  overtimeHours   Decimal  @default(0) @db.Decimal(8, 2)
+  overtimeAmount  Decimal  @default(0) @db.Decimal(14, 2)
+  deductions      Decimal  @default(0) @db.Decimal(14, 2)
+  bonus           Decimal  @default(0) @db.Decimal(14, 2)
+  netPay          Decimal  @default(0) @db.Decimal(14, 2)
+  status          String   @default("draft") // draft, calculated, approved, paid
+  approvedBy      String?  @db.Uuid
+  approvedAt      DateTime?
+  paidAt          DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, month, year])
+  @@index([userId])
+  @@index([month, year])
+  @@index([status])
+}
+
+model HiringCandidate {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  email         String?
+  phone         String?
+  position      String    // role they are applying for
+  departmentId  String?   @db.Uuid
+  resumeUrl     String?
+  stage         String    @default("applied") // applied, screening, interview, offer, hired, rejected
+  rating        Int?      // 1-5 stars
+  interviewDate DateTime?
+  notes         String?
+  source        String?   // linkedin, referral, career-page, etc.
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([stage])
+  @@index([departmentId])
+  @@index([createdAt])
+}
+
+
+
 
 model Invoice_Payments {
   id          String   @id @default(uuid()) @db.Uuid
@@ -1981,15 +2203,26 @@ model Invoice_Series {
   counter         Int      @default(0)
   isDefault       Boolean  @default(false)
   active          Boolean  @default(true)
+  companyId       String?  @db.Uuid
+  company         Company? @relation(fields: [companyId], references: [id])
+  branchId        String?  @db.Uuid
+  branch          Branch?  @relation(fields: [branchId], references: [id])
+  documentType    String   @default("INVOICE") // INVOICE, QUOTATION, PROFORMA, CREDIT_NOTE, PURCHASE_ORDER
+  financialYear   String?  // e.g. "26-27"
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   invoices        Invoices[]
   defaultForSettings Invoice_Settings[]
+
+  @@index([companyId])
+  @@index([documentType])
 }
 
 model Invoice_Settings {
   id                  String   @id @default(uuid()) @db.Uuid
+  companyId           String?  @unique @db.Uuid
+  company             Company? @relation(fields: [companyId], references: [id])
   baseCurrency        String   @db.VarChar(3)
   defaultSeriesId     String?  @db.Uuid
   defaultSeries       Invoice_Series? @relation(fields: [defaultSeriesId], references: [id], onDelete: SetNull)
@@ -2000,6 +2233,8 @@ model Invoice_Settings {
   bankAccount         String?
   iban                String?
   swift               String?
+  ifsc                String?
+  upiId               String?
   footerText          String?
   companyName         String?
   companyAddress      String?
@@ -2012,5 +2247,488 @@ model Invoice_Settings {
   companyEmail        String?
   companyPhone        String?
   companyWebsite      String?
+  gstStateCode        String?
+  defaultPdfTemplate  String?  @default("classic")
+  termsAndConditions  String?
+  quotationSeriesId   String?  @db.Uuid
+  proformaSeriesId    String?  @db.Uuid
+  creditNoteSeriesId  String?  @db.Uuid
   updatedAt           DateTime @updatedAt
 }
+
+model DocumentSettings {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @db.Uuid
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  documentType    String   // INVOICE, QUOTATION, PROFORMA, CREDIT_NOTE, PURCHASE_ORDER
+  prefix          String   @default("GX")
+  startingNumber  Int      @default(1)
+  formatTemplate  String   @default("{prefix}/{number}/{fy}") // GX/1/26-27
+  financialYear   String?  // current FY label e.g. 26-27
+  branchId        String?  @db.Uuid
+  branch          Branch?  @relation(fields: [branchId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([companyId, documentType, branchId])
+  @@index([companyId])
+}
+
+model Subscription {
+  id              String    @id @default(uuid()) @db.Uuid
+  companyId       String?   @db.Uuid
+  company         Company?  @relation(fields: [companyId], references: [id])
+  accountId       String    @db.Uuid
+  account         crm_Accounts @relation(fields: [accountId], references: [id])
+  name            String
+  description     String?
+  amount          Decimal   @db.Decimal(14, 2)
+  currency        String    @default("INR") @db.VarChar(3)
+  frequency       String    @default("MONTHLY") // MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY, CUSTOM
+  customDays      Int?
+  startDate       DateTime  @db.Date
+  endDate         DateTime? @db.Date
+  nextInvoiceDate DateTime? @db.Date
+  autoInvoice     Boolean   @default(true)
+  autoPayment     Boolean   @default(false)
+  status          String    @default("ACTIVE") // ACTIVE, PAUSED, CANCELLED, EXPIRED
+  gstRate         Decimal?  @db.Decimal(5, 2)
+  hsnCode         String?
+  sacCode         String?
+  createdBy       String    @db.Uuid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([accountId])
+  @@index([companyId])
+  @@index([status])
+  @@index([nextInvoiceDate])
+}
+
+// ============================================
+// GEXART OS ORGANIZATIONAL STRUCTURE
+// ============================================
+
+model Company {
+  id                 String   @id @default(uuid()) @db.Uuid
+  name               String
+  legalName          String?
+  tradeName          String?
+  logo               String?
+  domain             String?
+  gstin              String?
+  pan                String?
+  cin                String?
+  registeredAddress  String?
+  billingAddress     String?
+  state              String?
+  stateCode          String?
+  country            String?  @default("India")
+  phone              String?
+  email              String?
+  website            String?
+  bankName           String?
+  bankAccount        String?
+  ifsc               String?
+  upiId              String?
+  invoicePrefix      String?  @default("GX")
+  quotationPrefix    String?
+  proformaPrefix     String?
+  creditNotePrefix   String?
+  defaultCurrency    String?  @default("INR") @db.VarChar(3)
+  financialYearStart Int      @default(4) // April = 4
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  branches           Branch[]
+  users              Users[]
+  invoices           Invoices[]
+  invoiceSettings    Invoice_Settings?
+  invoiceSeries      Invoice_Series[]
+  documentSettings   DocumentSettings[]
+  subscriptions      Subscription[]
+  monitoringPolicy   MonitoringPolicy?
+}
+
+model Branch {
+  id                   String   @id @default(uuid()) @db.Uuid
+  name                 String
+  companyId            String   @db.Uuid
+  company              Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  address              String?
+  gstin                String?
+  state                String?
+  stateCode            String?
+  logo                 String?
+  bankName             String?
+  bankAccount          String?
+  ifsc                 String?
+  upiId                String?
+  officeLat            Decimal? @db.Decimal(10, 7)
+  officeLng            Decimal? @db.Decimal(10, 7)
+  geofenceRadiusMeters Int?     @default(200)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  departments        Department[]
+  users              Users[]
+  invoices           Invoices[]
+  invoiceSeries      Invoice_Series[]
+  documentSettings   DocumentSettings[]
+
+  @@index([companyId])
+}
+
+model Department {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  branchId  String   @db.Uuid
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teams     Team[]
+  users     Users[]
+
+  @@index([branchId])
+}
+
+model Team {
+  id           String     @id @default(uuid()) @db.Uuid
+  name         String
+  departmentId String     @db.Uuid
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  users        Users[]
+
+  @@index([departmentId])
+}
+
+model Designation {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     Users[]
+}
+
+model PermissionMatrix {
+  id        String   @id @default(uuid()) @db.Uuid
+  role      String   // E.g., AppRole value or custom role
+  resource  String   // E.g., "attendance", "finance", "projects", "leads"
+  actions   String[] // E.g., ["read", "create", "update", "delete", "approve", "assign", "export", "import"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([role, resource])
+}
+
+model Attendance {
+  id              String     @id @default(uuid()) @db.Uuid
+  userId          String     @db.Uuid
+  user            Users      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime   @db.Date
+  clockIn         DateTime
+  clockOut        DateTime?
+  clockInIp       String?
+  clockOutIp      String?
+  clockInLocation Json?      // { lat: number, lng: number, accuracy: number, address?: string }
+  clockOutLocation Json?     // { lat: number, lng: number, accuracy: number, address?: string }
+  clockInDevice   String?
+  clockOutDevice  String?
+  clockInPhoto    String?    // URL to selfie verification
+  clockOutPhoto   String?
+  status          String     @default("present") // present, late, half_day, absent
+  mode            String     @default("office")  // office, remote, hybrid, field
+  isFakeGps       Boolean    @default(false)
+  editedBy        String?    @db.Uuid
+  editReason      String?
+  totalHours      Decimal?   @db.Decimal(8, 2)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  breaks          BreakLog[]
+  workSessions    WorkSession[]
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+model BreakLog {
+  id           String     @id @default(uuid()) @db.Uuid
+  attendanceId String     @db.Uuid
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  startTime    DateTime
+  endTime      DateTime?
+  reason       String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([attendanceId])
+}
+
+model Sprint {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("planned") // active, completed, planned
+  boardId   String   @db.Uuid
+  board     Boards   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks     Tasks[]
+
+  @@index([boardId])
+}
+
+model Milestone {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  dueDate     DateTime?
+  boardId     String    @db.Uuid
+  board       Boards    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tasks       Tasks[]
+
+  @@index([boardId])
+}
+
+model TimeLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  taskId      String    @db.Uuid
+  task        Tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId      String    @db.Uuid
+  user        Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startTime   DateTime
+  endTime     DateTime?
+  duration    Int?      // duration in seconds
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+// ============================================
+// GEXART OS — WORK REPORTS & TASK TRANSFERS
+// ============================================
+
+model WorkReport {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime  @db.Date
+  summary     String
+  tasksDone   Json      @db.JsonB // [{ title, hours, status }]
+  hoursWorked Decimal?  @db.Decimal(8, 2)
+  status      String    @default("submitted") // draft, submitted, reviewed
+  reviewedBy  String?   @db.Uuid
+  reviewedAt  DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@index([status])
+}
+
+model TaskTransferRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  taskId      String    @db.Uuid
+  task        Tasks     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fromUserId  String    @db.Uuid
+  fromUser    Users     @relation("TaskTransferFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId    String    @db.Uuid
+  toUser      Users     @relation("TaskTransferTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  reason      String?
+  status      String    @default("pending") // pending, approved, rejected
+  approvedBy  String?   @db.Uuid
+  approver    Users?    @relation("TaskTransferApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  approvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([taskId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([status])
+}
+
+/// Drag-and-drop dashboard layout for CEO / custom report builder
+model DashboardLayout {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   @default("ceo") // ceo, revenue, performance, custom
+  widgets   Json     @db.JsonB // [{ id, type, x, y, w, h, config }]
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+}
+
+
+// ============================================
+// GEXART OS — LEAVE MANAGEMENT
+// ============================================
+
+model LeaveType {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String?  @db.Uuid
+  name        String
+  code        String   // PAID, UNPAID, SICK, CASUAL, EARNED
+  isPaid      Boolean  @default(true)
+  maxDays     Int?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  balances    LeaveBalance[]
+  applications LeaveApplication[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+}
+
+model LeaveBalance {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId String    @db.Uuid
+  leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  year        Int
+  allocated   Decimal   @default(0) @db.Decimal(6, 2)
+  used        Decimal   @default(0) @db.Decimal(6, 2)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, leaveTypeId, year])
+  @@index([userId])
+}
+
+model LeaveApplication {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId String    @db.Uuid
+  leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id])
+  startDate   DateTime  @db.Date
+  endDate     DateTime  @db.Date
+  days        Decimal   @db.Decimal(6, 2)
+  reason      String?
+  attachmentUrl String?
+  status      String    @default("pending") // pending, approved, rejected, cancelled
+  reviewedBy  String?   @db.Uuid
+  reviewer    Users?    @relation("LeaveReviewer", fields: [reviewedBy], references: [id])
+  reviewedAt  DateTime?
+  reviewNote  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([startDate])
+}
+
+// ============================================
+// GEXART OS — EMPLOYEE MONITORING & WORK SESSIONS
+// ============================================
+
+model MonitoringPolicy {
+  id                    String   @id @default(uuid()) @db.Uuid
+  companyId             String   @unique @db.Uuid
+  company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  enabled               Boolean  @default(true)
+  minIntervalMinutes    Int      @default(5)
+  maxIntervalMinutes    Int      @default(300) // up to 5 hours
+  maxMissedBeforeWarning Int     @default(3)
+  gracePeriodSeconds    Int      @default(120)
+  screenshotOnWorkUpdate  Boolean  @default(true)
+  activityMetricsEnabled Boolean @default(true)
+  workHoursStart        String   @default("09:00")
+  workHoursEnd          String   @default("18:00")
+  notifyEmployees       Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model WorkSession {
+  id            String      @id @default(uuid()) @db.Uuid
+  userId        String      @db.Uuid
+  user          Users       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendanceId  String?     @db.Uuid
+  attendance    Attendance? @relation(fields: [attendanceId], references: [id], onDelete: SetNull)
+  taskId        String?     @db.Uuid
+  task          Tasks?      @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  boardId       String?     @db.Uuid
+  activityLabel String?
+  startedAt     DateTime    @default(now())
+  endedAt       DateTime?
+  activeSeconds Int         @default(0)
+  idleSeconds   Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  productivityChecks ProductivityCheck[]
+
+  @@index([userId])
+  @@index([attendanceId])
+  @@index([startedAt])
+}
+
+model ProductivityCheck {
+  id              String       @id @default(uuid()) @db.Uuid
+  userId          String       @db.Uuid
+  user            Users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workSessionId   String?      @db.Uuid
+  workSession     WorkSession? @relation(fields: [workSessionId], references: [id], onDelete: SetNull)
+  scheduledAt     DateTime
+  triggeredAt     DateTime?
+  expiresAt       DateTime
+  status          String       @default("pending") // pending, acknowledged, missed, work_update_required, completed
+  missedCount     Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  response        WorkCheckResponse?
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model WorkCheckResponse {
+  id              String            @id @default(uuid()) @db.Uuid
+  checkId         String            @unique @db.Uuid
+  check           ProductivityCheck @relation(fields: [checkId], references: [id], onDelete: Cascade)
+  userId          String            @db.Uuid
+  user            Users             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responseType    String            // acknowledge, work_update
+  workDone        String?
+  workInProgress  String?
+  blockers        String?
+  estimatedCompletion String?
+  onCall          Boolean           @default(false)
+  screenshotKey   String?
+  respondedAt     DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+
+  @@index([userId])
+}
+

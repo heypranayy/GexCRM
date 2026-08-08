@@ -48,13 +48,12 @@ export function ProfileForm({ data }: ProfileFormProps) {
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
-    defaultValues: data
-      ? { ...data }
-      : {
-          name: "",
-          username: "",
-          account_name: "",
-        },
+    defaultValues: {
+      id: data?.id ?? "",
+      name: data?.name ?? "",
+      username: data?.username ?? "",
+      account_name: data?.account_name ?? "",
+    },
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {

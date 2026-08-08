@@ -73,6 +73,22 @@ export const columns: ColumnDef<AdminUser>[] = [
     enableHiding: true,
   },
   {
+    accessorKey: "baseSalary",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Base Salary (₹)" />
+    ),
+    cell: ({ row }) => {
+      const salary = row.original.baseSalary;
+      return (
+        <div className="font-mono text-sm">
+          {salary != null ? `₹${Number(salary).toLocaleString("en-IN")}` : "—"}
+        </div>
+      );
+    },
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
     accessorKey: "role",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Role" />

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { Link as I18nLink } from "@/i18n/navigation"
 import { usePathname } from "next/navigation"
 import { type LucideIcon, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -64,14 +65,18 @@ export function NavMain({ items, dict }: NavMainProps) {
   const pathname = usePathname()
 
   // Helper function to check if a route is active
+  const stripLocale = (path: string) =>
+    path.replace(/^\/[a-z]{2}(?=\/|$)/, "") || "/"
+
   const isRouteActive = (url: string, exact?: boolean): boolean => {
+    const normalizedPath = stripLocale(pathname)
     if (url === "/" || url === "") {
-      return pathname === "/" || pathname === ""
+      return normalizedPath === "/" || normalizedPath === ""
     }
     if (exact) {
-      return pathname === url || pathname.replace(/^\/[a-z]{2}(?=\/|$)/, "") === url
+      return normalizedPath === url
     }
-    return pathname.startsWith(url)
+    return normalizedPath.startsWith(url)
   }
 
   // Helper to check if any sub-item is active
@@ -84,14 +89,15 @@ export function NavMain({ items, dict }: NavMainProps) {
     <SidebarGroup>
       <SidebarGroupLabel>Navigation</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => {
+        {items.map((item, index) => {
           // Check if this is a collapsible group with sub-items
           if (item.items && item.items.length > 0) {
             const hasActive = hasActiveChild(item.items)
+            const itemKey = item.url ?? `${item.title}-${index}`
 
             return (
               <Collapsible
-                key={item.title}
+                key={itemKey}
                 asChild
                 defaultOpen={hasActive}
                 className="group/collapsible"
@@ -112,14 +118,14 @@ export function NavMain({ items, dict }: NavMainProps) {
                       {item.items.map((subItem) => {
                         const isActive = isRouteActive(subItem.url, subItem.exact)
                         return (
-                          <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubItem key={subItem.url}>
                             <SidebarMenuSubButton
                               asChild
                               isActive={isActive}
                             >
-                              <Link href={subItem.url}>
+                              <I18nLink href={subItem.url}>
                                 <span>{subItem.title}</span>
-                              </Link>
+                              </I18nLink>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         )
@@ -134,17 +140,18 @@ export function NavMain({ items, dict }: NavMainProps) {
           // Simple navigation item (no sub-items)
           if (!item.url) return null
           const isActive = isRouteActive(item.url)
+          const itemKey = item.url ?? `${item.title}-${index}`
           return (
-            <SidebarMenuItem key={item.title}>
+            <SidebarMenuItem key={itemKey}>
               <SidebarMenuButton
                 asChild
                 tooltip={item.title}
                 isActive={isActive}
               >
-                <Link href={item.url}>
+                <I18nLink href={item.url}>
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
-                </Link>
+                </I18nLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )

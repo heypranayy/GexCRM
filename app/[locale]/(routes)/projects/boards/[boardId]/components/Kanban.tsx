@@ -87,6 +87,8 @@ interface Task {
   taskStatus?: string;
 }
 
+import { startTimeLog, stopTimeLog } from "../../actions/time-tracking";
+
 // Draggable Task Item Component
 function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
   const {
@@ -99,11 +101,32 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
   } = useSortable({ id: task.id });
 
   const [currentTime] = React.useState(() => Date.now());
+  const [isTimerRunning, setIsTimerRunning] = React.useState(false);
+  const [activeLogId, setActiveLogId] = React.useState<string | null>(null);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+  };
+
+  const handleToggleTimer = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      if (isTimerRunning && activeLogId) {
+        await stopTimeLog(activeLogId);
+        setIsTimerRunning(false);
+        setActiveLogId(null);
+        toast.success("Time tracker stopped");
+      } else {
+        const log = await startTimeLog(task.id, "Working on task");
+        setIsTimerRunning(true);
+        setActiveLogId(log.id);
+        toast.success("Time tracker started");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to toggle timer");
+    }
   };
 
   return (
@@ -112,19 +135,19 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
       style={style}
       {...attributes}
       {...listeners}
-      className="flex flex-col overflow-hidden items-start justify-center text-xs p-3 mb-2  rounded-md border  shadow-md cursor-grab active:cursor-grabbing"
+      className="flex flex-col overflow-hidden items-start justify-center text-xs p-4 mb-3 rounded-xl border border-border bg-card/40 backdrop-blur-md shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing hover:border-primary/30"
     >
-      <div className="flex flex-row justify-between mx-auto w-full py-1">
-        <h2 className="grow font-bold text-sm ">
+      <div className="flex flex-row justify-between mx-auto w-full py-1 items-start">
+        <h2 className="grow font-bold text-sm text-foreground tracking-tight">
           {task.title === "" ? "Untitled" : task.title}
         </h2>
-        <div className="ml-1">
+        <div className="ml-2 flex items-center gap-1.5">
           {task?.dueDateAt &&
             task.taskStatus != "COMPLETE" &&
             task.dueDateAt < currentTime && (
               <HoverCard>
                 <HoverCardTrigger>
-                  <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />
+                  <ExclamationTriangleIcon className="w-4 h-4 text-destructive" />
                 </HoverCardTrigger>
                 <HoverCardContent>
                   Attention! This task is overdue!
@@ -134,70 +157,84 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
           {task.taskStatus === "COMPLETE" && (
             <HoverCard>
               <HoverCardTrigger>
-                <Check className="w-4 h-4 text-green-500" />
+                <Check className="w-4 h-4 text-emerald-500" />
               </HoverCardTrigger>
               <HoverCardContent>This task is done!</HoverCardContent>
             </HoverCard>
           )}
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild className="w-[25px] ml-1 ">
-            <DotsHorizontalIcon className="w-4 h-4 text-slate-600 pl-2" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-[200px]">
-            <DropdownMenuItem
-              className="gap-2"
-              onClick={() => router.push(`/projects/tasks/viewtask/${task.id}`)}
-            >
-              <EyeIcon className="w-4 h-4 opacity-50" />
-              View
-            </DropdownMenuItem>
-            {task.taskStatus !== "COMPLETE" && (
-              <DropdownMenuItem className="gap-2" onClick={() => onEdit(task)}>
-                <Pencil className="w-4 h-4 opacity-50" />
-                Edit
-              </DropdownMenuItem>
-            )}
-            {task.taskStatus !== "COMPLETE" && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild className="w-[25px] ml-1">
+              <DotsHorizontalIcon className="w-4 h-4 text-muted-foreground pl-2 cursor-pointer hover:text-foreground" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[200px]">
               <DropdownMenuItem
                 className="gap-2"
-                onClick={() => onDone(task.id)}
+                onClick={() => router.push(`/projects/tasks/viewtask/${task.id}`)}
               >
-                <Check className="w-4 h-4 opacity-50" />
-                Mark as done
+                <EyeIcon className="w-4 h-4 opacity-50" />
+                View
               </DropdownMenuItem>
-            )}
-            <DropdownMenuItem className="gap-2" onClick={() => onDelete(task)}>
-              <TrashIcon className="w-4 h-4 opacity-50" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              {task.taskStatus !== "COMPLETE" && (
+                <DropdownMenuItem className="gap-2" onClick={() => onEdit(task)}>
+                  <Pencil className="w-4 h-4 opacity-50" />
+                  Edit
+                </DropdownMenuItem>
+              )}
+              {task.taskStatus !== "COMPLETE" && (
+                <DropdownMenuItem
+                  className="gap-2"
+                  onClick={() => onDone(task.id)}
+                >
+                  <Check className="w-4 h-4 opacity-50" />
+                  Mark as done
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem className="gap-2" onClick={() => onDelete(task)}>
+                <TrashIcon className="w-4 h-4 opacity-50" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
-      <div className="py-1">
+      <div className="py-1 text-muted-foreground font-medium">
         Due date: {moment(task.dueDateAt).format("YYYY-MM-DD")}
       </div>
-      <div className="my-2">
-        <p
+      <div className="my-1.5">
+        <span
           className={
             task.priority === "normal"
-              ? `text-yellow-500`
+              ? `text-yellow-500 font-semibold`
               : task.priority === "high"
-              ? `text-red-500`
+              ? `text-destructive font-semibold`
               : task.priority === "low"
-              ? `text-green-500`
-              : `text-slate-600`
+              ? `text-emerald-500 font-semibold`
+              : `text-muted-foreground`
           }
         >
-          Priorita: {task.priority}
-        </p>
+          Priority: {task.priority}
+        </span>
       </div>
       <HoverCard>
-        <HoverCardTrigger className="line-clamp-2 mb-2">
+        <HoverCardTrigger className="line-clamp-2 mb-3 text-muted-foreground/80">
           {task.content}
         </HoverCardTrigger>
-        <HoverCardContent>{task.content}</HoverCardContent>
+        <HoverCardContent className="bg-popover border text-popover-foreground">{task.content}</HoverCardContent>
       </HoverCard>
+
+      {/* Interactive Time Tracker button inside card */}
+      <div className="mt-1 w-full pt-2 border-t border-border/40 flex justify-between items-center">
+        <span className="text-[10px] text-muted-foreground uppercase font-mono">Time Track</span>
+        <Button
+          size="sm"
+          variant={isTimerRunning ? "destructive" : "outline"}
+          className="h-7 px-2.5 rounded-full text-[10px] font-semibold gap-1 flex items-center"
+          onClick={handleToggleTimer}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${isTimerRunning ? 'bg-white animate-pulse' : 'bg-primary'}`}></span>
+          {isTimerRunning ? "Stop" : "Track Time"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -210,6 +247,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
     </div>
   );
 }
+
 
 const Kanban = (props: any) => {
   const boardId = props.boardId;
@@ -232,6 +270,27 @@ const Kanban = (props: any) => {
       setData(structuredClone(props.data || []));
     }
   }, [props.data]);
+
+  // Gexart OS Keyboard Shortcuts (Linear/Notion feel)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)) {
+        return;
+      }
+      if (e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        // Triggers the first available task insertion dialog or button
+        const btn = document.querySelector(".btn-new-task") as HTMLButtonElement;
+        if (btn) {
+          btn.click();
+        } else {
+          toast.info("Press 'n' to create a new task.");
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const setDataAndRef = (newData: any[]) => {
     dataRef.current = newData;

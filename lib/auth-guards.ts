@@ -18,3 +18,25 @@ export async function requireAdmin() {
     return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
   return { session };
 }
+
+export async function requirePermission(resource: string, action: string) {
+  const session = await getSession();
+  if (!session) {
+    return {
+      authorized: false,
+      response: NextResponse.json({ error: "Unauthenticated" }, { status: 401 }),
+    };
+  }
+
+  const { hasPermission } = await import("./permissions");
+  const allowed = await hasPermission(session.user.id, resource, action);
+  if (!allowed) {
+    return {
+      authorized: false,
+      response: NextResponse.json({ error: "Forbidden - Insufficient permissions" }, { status: 403 }),
+    };
+  }
+
+  return { authorized: true, session };
+}
+

@@ -1,12 +1,12 @@
 {
   "RootLayout": {
-    "title": "NextCRM",
-    "description": "NextCRM — це CRM з відкритим вихідним кодом, створена на основі NextJS."
+    "title": "Gexart CRM",
+    "description": "Gexart CRM — Sales, HR, Projects, Invoicing & Operations."
   },
   "ModuleMenu": {
     "dashboard": "Панель приладів",
     "crm": {
-      "title": "Продажі",
+      "title": "CRM",
       "accounts": "Компанії",
       "opportunities": "Можливості",
       "contacts": "Контакти",
@@ -21,13 +21,16 @@
     "tasks": "завдання",
     "reports": "Звіти",
     "documents": "Документи",
+    "sales": "Продажі",
+    "hr": "HR та персонал",
+    "executive": "Executive",
     "storage": "Зберігання",
     "settings": "Адміністрація"
   },
   "DashboardPage": {
     "containerTitle": "Панель приладів",
     "totalRevenue": "Загальна виручка",
-    "containerDescription": "Ласкаво просимо до NextCRM, тут Ви можете побачити всю важливу інформацію про ваш бізнес.",
+    "containerDescription": "Вітаємо в Gexart CRM — огляд вашого бізнесу.",
     "expectedRevenue": "Очікуваний дохід",
     "activeUsers": "Активні користувачі",
     "accounts": "Компанії",

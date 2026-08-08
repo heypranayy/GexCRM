@@ -5,9 +5,9 @@ import { Copy, Check } from "lucide-react";
 
 const MCP_CONFIG = `{
   "mcpServers": {
-    "nextcrm": {
+    "gexart-crm": {
       "type": "http",
-      "url": "https://YOUR_NEXTCRM_URL/api/mcp/mcp",
+      "url": "https://YOUR_GEXART_CRM_URL/api/mcp/mcp",
       "headers": { "Authorization": "Bearer YOUR_API_TOKEN" }
     }
   }

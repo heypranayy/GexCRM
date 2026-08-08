@@ -1,12 +1,12 @@
 {
   "RootLayout": {
-    "title": "NextCRM",
-    "description": "NextCRM je open source CRM vytvořené na frameworku NextJS."
+    "title": "Gexart CRM",
+    "description": "Gexart CRM — Sales, HR, Projects, Invoicing & Operations."
   },
   "ModuleMenu": {
     "dashboard": "Přehled",
     "crm": {
-      "title": "Obchod",
+      "title": "CRM",
       "accounts": "Firmy",
       "opportunities": "Obchody",
       "contacts": "Kontakty",
@@ -22,12 +22,15 @@
     "reports": "Reporty",
     "documents": "Dokumenty",
     "invoices": "Faktury",
+    "sales": "Prodej",
+    "hr": "HR a lidé",
+    "executive": "Executive",
     "storage": "Úložiště",
     "settings": "Nastavení"
   },
   "DashboardPage": {
     "containerTitle": "Přehled",
-    "containerDescription": "Vítejte v NextCRM, zde můžete vidět všechny důležité informace o vašem podniku.",
+    "containerDescription": "Vítejte v Gexart CRM — přehled vašeho podnikání.",
     "totalRevenue": "Celkový obrat",
     "expectedRevenue": "Očekávaný obrat",
     "activeUsers": "Aktivní uživatelé",

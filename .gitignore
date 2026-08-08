@@ -74,5 +74,9 @@ tsx-*
 # v8 compile cache
 v8-compile-cache-*/
 
+# Local PostgreSQL installers (do not commit)
+postgresql-portable/
+postgresql-installer.exe
+
 #superpowers plugin
 .superpowers/

@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import AiCopilot from "./components/AiCopilot";
+import { RandomCheckProvider } from "@/components/monitoring/RandomCheckProvider";
 
 import { Metadata } from "next";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -12,6 +14,7 @@ import { getTranslations } from "next-intl/server";
 import { AvatarProvider } from "@/context/avatar-context";
 import { CurrencyProvider } from "@/context/currency-context";
 import { getEnabledCurrencies, getDefaultCurrency } from "@/lib/currency";
+import { getActiveCompany } from "@/lib/company/context";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -86,7 +89,10 @@ export default async function AppLayout({
     emails: dict("emails"),
     reports: dict("reports"),
     documents: dict("documents"),
+    sales: dict("sales"),
     invoices: dict("invoices"),
+    hr: dict("hr"),
+    executive: dict("executive"),
     settings: dict("settings"),
   };
 
@@ -101,10 +107,13 @@ export default async function AppLayout({
     : defaultCurrency;
   const currencyList = enabledCurrencies.map((c: { code: string; name: string; symbol: string }) => ({ code: c.code, name: c.name, symbol: c.symbol }));
 
+  const activeCompany = await getActiveCompany();
+
   //console.log(typeof build, "build");
   return (
     <AvatarProvider initialAvatar={user?.image}>
     <CurrencyProvider initialCurrency={displayCurrency} currencies={currencyList}>
+    <RandomCheckProvider>
     <SidebarProvider defaultOpen={sidebarOpen}>
       <AppSidebar
         dict={translations}
@@ -114,6 +123,8 @@ export default async function AppLayout({
         <Header
           id={session.user.id as string}
           lang={session.user.userLanguage as string}
+          companyId={activeCompany?.id}
+          companyName={activeCompany?.name}
         />
         {/*
           Task Group 3.3: Footer Relocation
@@ -129,8 +140,10 @@ export default async function AppLayout({
           </div>
           <Footer />
         </div>
+        <AiCopilot />
       </SidebarInset>
     </SidebarProvider>
+    </RandomCheckProvider>
     </CurrencyProvider>
     </AvatarProvider>
   );

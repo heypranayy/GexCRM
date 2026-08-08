@@ -1,12 +1,12 @@
 {
   "RootLayout": {
-    "title": "NextCRM",
-    "description": "Willkommen bei NextCRM CRM mit Prisma und Next.js 13"
+    "title": "Gexart CRM",
+    "description": "Gexart CRM — Sales, HR, Projects, Invoicing & Operations."
   },
   "ModuleMenu": {
     "dashboard": "Dashboard",
     "crm": {
-      "title": "Handel",
+      "title": "CRM",
       "accounts": "Firmen",
       "opportunities": "Möglichkeiten",
       "contacts": "Kontakte",
@@ -21,13 +21,16 @@
     "tasks": "Aufgaben",
     "reports": "Berichte",
     "documents": "Dokumente",
+    "sales": "Vertrieb",
+    "hr": "HR & Personal",
+    "executive": "Executive",
     "storage": "Speicher",
     "settings": "Einstellungen"
   },
   "DashboardPage": {
     "containerTitle": "Dashboard",
     "totalRevenue": "Gesamtumsatz",
-    "containerDescription": "Willkommen bei NextCRM, hier können Sie alle wichtigen Informationen über Ihr Unternehmen sehen.",
+    "containerDescription": "Willkommen bei Gexart CRM — Ihr Unternehmens-Dashboard.",
     "expectedRevenue": "Erwarteter Umsatz",
     "activeUsers": "Aktive Benutzer",
     "accounts": "Unternehmen",

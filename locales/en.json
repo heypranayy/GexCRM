@@ -1,12 +1,14 @@
 {
   "RootLayout": {
-    "title": "NextCRM",
-    "description": "NextCRM is an open source CRM build on top of NextJS."
+    "title": "Gexart CRM",
+    "description": "Gexart CRM — Sales, HR, Projects, Invoicing & Operations platform."
   },
   "ModuleMenu": {
     "dashboard": "Dashboard",
+    "hr": "HR & People",
+    "executive": "Executive",
     "crm": {
-      "title": "Sales",
+      "title": "CRM",
       "accounts": "Companies",
       "opportunities": "Opportunities",
       "contacts": "Contacts",
@@ -21,6 +23,7 @@
     "tasks": "Tasks",
     "reports": "Reports",
     "documents": "Documents",
+    "sales": "Sales",
     "invoices": "Invoices",
     "storage": "Storage",
     "settings": "Administration"
@@ -28,7 +31,7 @@
   "DashboardPage": {
     "containerTitle": "Dashboard",
     "totalRevenue": "Total revenue",
-    "containerDescription": "Welcome to NextCRM, here you can see all important information about your business.",
+    "containerDescription": "Welcome to Gexart CRM — your company command center for sales, HR, projects, and finance.",
     "expectedRevenue": "Expected revenue",
     "activeUsers": "Active users",
     "accounts": "Companies",
@@ -52,7 +55,7 @@
     "locale": "{locale, select, de {German} en {English} cz {Czech} uk {Ukrainian} other {Unknown}}"
   },
   "CrmModuleMenuComponent": {
-    "menuTitle": "Sales"
+    "menuTitle": "CRM"
   },
   "Common": {
     "success": "Success",

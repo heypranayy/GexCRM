@@ -1,5 +1,5 @@
 {
-  "name": "nextcrm-app",
+  "name": "gexcrm",
   "version": "0.21.2",
   "private": true,
   "engines": {
@@ -68,7 +68,7 @@
     "@react-email/markdown": "0.0.18",
     "@react-email/render": "^2.0.4",
     "@react-pdf/renderer": "^4.3.2",
-    "@tailwindcss/postcss": "^4.2.1",
+    "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/extension-link": "^3.20.5",
     "@tiptap/extension-underline": "^3.20.5",
@@ -138,7 +138,7 @@
     "sonner": "^2.0.7",
     "swr": "^2.4.0",
     "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.1",
+    "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "xmlbuilder2": "^4.0.3",

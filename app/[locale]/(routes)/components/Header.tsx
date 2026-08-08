@@ -8,10 +8,13 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { CommandComponent } from "@/components/CommandComponent";
 import SupportComponent from "@/components/support";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
+import { CompanySwitcher } from "./CompanySwitcher";
 
 type Props = {
   id: string;
   lang: string;
+  companyId?: string | null;
+  companyName?: string | null;
 };
 
 /**
@@ -32,13 +35,15 @@ type Props = {
  * Note: User profile functionality (avatar, name, email, user actions) is now
  * handled by the NavUser component in the sidebar footer (Task 3.1).
  */
-const Header = ({ id, lang }: Props) => {
+const Header = ({ id, lang, companyId, companyName }: Props) => {
   return (
     <>
       <div className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
+          <CompanySwitcher currentCompanyId={companyId} currentCompanyName={companyName} />
+          <Separator orientation="vertical" className="mr-2 h-4 hidden sm:block" />
           <FulltextSearch />
         </div>
         <div className="flex items-center gap-2">

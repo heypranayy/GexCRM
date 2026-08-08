@@ -17,6 +17,8 @@ import leadTypesData from "../initial-data/crm_Lead_Types.json";
 
 import { seedCurrencies } from "./currencies";
 import { seedInvoices } from "./invoices";
+import { seedPermissions } from "./permissions";
+import { seedCredentialAccount } from "../../lib/auth-seed-credential";
 
 const connectionString = process.env.DATABASE_URL!;
 const pool = new Pool({ connectionString });
@@ -146,25 +148,27 @@ async function main() {
   await upsertByName(prisma.crm_Lead_Types, leadTypesData);
   console.log("Lead Types seeded");
 
-  // Test User for E2E Testing
-  const testUserEmail = process.env.TEST_USER_EMAIL || "test@nextcrm.app";
-  // Name must contain "a" — e2e helpers (selectUserInCombobox) type "a" to
-  // filter the assignee combobox and need this user to match.
+  // Gexart CRM admin user (email + password sign-in)
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@gexart.com";
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || "Gexart@123456";
   const testUser = await prisma.users.upsert({
-    where: { email: testUserEmail },
+    where: { email: adminEmail },
     update: {
-      name: "Playwright Admin",
+      name: "Gexart Admin",
       userStatus: "ACTIVE",
       role: "admin",
+      emailVerified: true,
     },
     create: {
-      email: testUserEmail,
-      name: "Playwright Admin",
+      email: adminEmail,
+      name: "Gexart Admin",
       userStatus: "ACTIVE",
       role: "admin",
+      emailVerified: true,
     },
   });
-  console.log(`Test user seeded: ${testUserEmail}`);
+  await seedCredentialAccount(prisma, testUser.id, adminEmail, adminPassword);
+  console.log(`Gexart admin seeded: ${adminEmail} (password from SEED_ADMIN_PASSWORD or default)`);
 
   // Demo CRM dataset for e2e tests — the update/detail specs act on the
   // first table row and need at least one record per entity. Idempotent:
@@ -287,6 +291,9 @@ async function main() {
 
   // Invoice module defaults
   await seedInvoices(prisma);
+
+  // Gexart OS Permissions & Organization Structure
+  await seedPermissions(prisma);
 
   console.log("-------- Seed DB completed --------");
 }

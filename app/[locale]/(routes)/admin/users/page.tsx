@@ -7,13 +7,16 @@ import { Separator } from "@/components/ui/separator";
 import { getSession } from "@/lib/auth-server";
 import { AdminUserDataTable } from "./table-components/data-table";
 import { columns } from "./table-components/columns";
-import { Users } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import SendMailToAll from "./components/send-mail-to-all";
 import { getTranslations } from "next-intl/server";
 
 const AdminUsersPage = async () => {
-  const users: Users[] = await getUsers();
+  const users = await getUsers();
+  const serializedUsers = users.map((u) => ({
+    ...u,
+    baseSalary: u.baseSalary != null ? Number(u.baseSalary) : null,
+  }));
   const t = await getTranslations("AdminPage");
 
   const session = await getSession();
@@ -48,7 +51,7 @@ const AdminUsersPage = async () => {
       </div>
       <Separator />
 
-      <AdminUserDataTable columns={columns} data={users} />
+      <AdminUserDataTable columns={columns} data={serializedUsers} />
     </Container>
   );
 };
