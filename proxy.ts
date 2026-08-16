@@ -50,8 +50,21 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // Non-API routes — delegate to next-intl
-  return intlMiddleware(req);
+  // Non-API routes — delegate to next-intl (refresh Supabase session cookies when configured)
+  const intlResponse = intlMiddleware(req);
+
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  ) {
+    const { updateSession } = await import("./utils/supabase/middleware");
+    const supabaseResponse = await updateSession(req);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      intlResponse.cookies.set(cookie.name, cookie.value);
+    });
+  }
+
+  return intlResponse;
 }
 
 export const config = {

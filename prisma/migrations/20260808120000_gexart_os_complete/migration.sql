@@ -7,11 +7,6 @@ ALTER TYPE "Invoice_Type" ADD VALUE IF NOT EXISTS 'PURCHASE_ORDER';
 -- User salary field for payroll calculation
 ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "baseSalary" DECIMAL(14,2);
 
--- Attendance HR edit tracking
-ALTER TABLE "Attendance" ADD COLUMN IF NOT EXISTS "editedBy" UUID;
-ALTER TABLE "Attendance" ADD COLUMN IF NOT EXISTS "editReason" TEXT;
-ALTER TABLE "Attendance" ADD COLUMN IF NOT EXISTS "totalHours" DECIMAL(8,2);
-
 -- Gexart OS org structure (if not yet created)
 CREATE TABLE IF NOT EXISTS "Company" (
     "id" UUID NOT NULL,

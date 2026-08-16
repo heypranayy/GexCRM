@@ -28,7 +28,11 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "supabase:login": "supabase login",
+    "supabase:link": "supabase link --project-ref cwoucnbeaagrjylbjqqu",
+    "supabase:status": "supabase status",
+    "supabase:db:push": "supabase db push"
   },
   "prisma": {
     "seed": "ts-node ./prisma/seeds/seed.ts"
@@ -68,6 +72,8 @@
     "@react-email/markdown": "0.0.18",
     "@react-email/render": "^2.0.4",
     "@react-pdf/renderer": "^4.3.2",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-table": "^8.21.3",
     "@tiptap/extension-link": "^3.20.5",
@@ -163,6 +169,7 @@
     "jest": "^30.3.0",
     "jest-environment-node": "^30.3.0",
     "prisma": "^7.6.0",
+    "supabase": "^2.114.0",
     "shadcn": "^3.8.5",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",

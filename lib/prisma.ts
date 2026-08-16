@@ -9,7 +9,11 @@ declare global {
 // Prisma Client configuration with connection pooling and lifecycle management
 const prismaClientSingleton = () => {
   const connectionString = `${process.env.DATABASE_URL}`;
-  const pool = new Pool({ connectionString });
+  const isSupabase = connectionString.includes("supabase.co");
+  const pool = new Pool({
+    connectionString,
+    ...(isSupabase ? { ssl: { rejectUnauthorized: false } } : {}),
+  });
   const adapter = new PrismaPg(pool);
 
   const client = new PrismaClient({
