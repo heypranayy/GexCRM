@@ -1,10 +1,13 @@
 name: CI
 
+# Disabled — does not run on push/PR. Re-enable by restoring the triggers below.
+# on:
+#   push:
+#     branches: [dev, main]
+#   pull_request:
+#     branches: [dev, main]
 on:
-  push:
-    branches: [dev, main]
-  pull_request:
-    branches: [dev, main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
