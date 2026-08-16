@@ -42,6 +42,9 @@
   ],
   "exclude": [
     "node_modules",
-    "postgresql-portable"
+    "postgresql-portable",
+    "docs",
+    "examples",
+    "jsons"
   ]
 }

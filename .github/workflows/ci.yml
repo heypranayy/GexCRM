@@ -56,6 +56,8 @@ env:
   IMAP_PORT: "993"
   IMAP_USER: ci
   IMAP_PASSWORD: ci
+  # Large Next.js + Prisma projects can OOM on default ~2GB heap during tsc.
+  NODE_OPTIONS: --max-old-space-size=8192
 
 jobs:
   # Cheap gate with no services: a typo or failing unit test costs ~1 minute

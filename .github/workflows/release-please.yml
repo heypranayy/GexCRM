@@ -12,6 +12,7 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       # Do not set release-type here: it switches the action to simple mode,
       # which ignores release-please-config.json and its changelog-sections.
