@@ -56,6 +56,8 @@ env:
   IMAP_PORT: "993"
   IMAP_USER: ci
   IMAP_PASSWORD: ci
+  TEST_USER_EMAIL: admin@gexart.com
+  SEED_ADMIN_PASSWORD: Gexart@123456
   # Large Next.js + Prisma projects can OOM on default ~2GB heap during tsc.
   NODE_OPTIONS: --max-old-space-size=8192
 
@@ -116,7 +118,7 @@ jobs:
       - name: Apply all migrations to a fresh database
         run: pnpm exec prisma migrate deploy
       - name: Database-backed test suites
-        run: pnpm exec jest --ci __tests__/invoices/lifecycle.test.ts
+        run: pnpm exec jest --ci --forceExit __tests__/invoices/lifecycle.test.ts
 
   build:
     name: Production build (mirrors Coolify)

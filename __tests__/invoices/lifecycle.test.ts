@@ -59,6 +59,13 @@ jest.mock("@/lib/invoices/storage", () => ({
   uploadInvoicePdf: jest.fn().mockResolvedValue("invoices/test/fake.pdf"),
 }));
 
+jest.mock("@/lib/company/context", () => ({
+  getActiveCompanyId: jest.fn().mockResolvedValue(null),
+  getActiveCompany: jest.fn().mockResolvedValue(null),
+  getCompanyInvoiceSettings: jest.fn(),
+  listUserCompanies: jest.fn(),
+}));
+
 /* ------------------------------------------------------------------
  * Imports
  * ------------------------------------------------------------------ */
