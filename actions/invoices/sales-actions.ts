@@ -248,8 +248,8 @@ export async function getSalesProducts() {
       id: true,
       name: true,
       description: true,
-      price: true,
-      product_code: true,
+      unit_price: true,
+      sku: true,
     },
     orderBy: { name: "asc" },
     take: 500,
@@ -352,8 +352,10 @@ export async function createSalesDocument(raw: unknown) {
       invoiceLevelDiscountPercent: input.invoiceLevelDiscountPercent,
       roundOff: totals.roundOff,
       originalInvoiceId: input.originalInvoiceId,
-      billingSnapshot,
-      businessSnapshot,
+      billingSnapshot: billingSnapshot as unknown as Prisma.InputJsonValue,
+      businessSnapshot: businessSnapshot
+        ? (businessSnapshot as unknown as Prisma.InputJsonValue)
+        : undefined,
       publicToken: generatePublicToken(),
       subtotal: totals.subtotal,
       discountTotal: totals.discountTotal,

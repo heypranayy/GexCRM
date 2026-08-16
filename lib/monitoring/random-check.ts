@@ -9,6 +9,8 @@ export interface MonitoringPolicyConfig {
   gracePeriodSeconds: number;
   workHoursStart: string; // HH:mm
   workHoursEnd: string;
+  maxMissedBeforeWarning?: number;
+  screenshotOnWorkUpdate?: boolean;
 }
 
 export function randomIntervalMs(policy: MonitoringPolicyConfig): number {

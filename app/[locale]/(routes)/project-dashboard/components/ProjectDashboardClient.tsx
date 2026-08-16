@@ -33,7 +33,9 @@ export default function ProjectDashboardClient() {
     try {
       const result = await getProjectDashboardData(id);
       setData(result);
-      if (!boardId && result.selectedBoardId) setBoardId(result.selectedBoardId);
+      if (!boardId && "selectedBoardId" in result && result.selectedBoardId) {
+        setBoardId(result.selectedBoardId);
+      }
     } catch (e) {
       console.error(e);
     } finally {

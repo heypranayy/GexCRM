@@ -167,7 +167,7 @@ export async function pollWorkCheck() {
     const now = new Date();
     if (pending.status === "pending" && now > pending.expiresAt) {
       const missed = pending.missedCount + 1;
-      const needsUpdate = missed >= policy.maxMissedBeforeWarning;
+      const needsUpdate = missed >= (policy.maxMissedBeforeWarning ?? 3);
       await prismadb.productivityCheck.update({
         where: { id: pending.id },
         data: {
