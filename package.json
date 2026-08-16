@@ -20,6 +20,7 @@
     "db:seed": "pnpm db:guard && SEED_DEMO_DATA=1 prisma db seed",
     "db:reset": "pnpm db:guard && docker compose -f docker-compose.dev.yml rm -sfv postgres && docker volume rm -f nextcrm-dev_postgres_dev_data && pnpm db:up && pnpm db:wait && pnpm db:migrate && pnpm db:seed",
     "build": "prisma generate && prisma migrate deploy && next build",
+    "build:vercel": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "migrate:mongo-to-postgres": "pnpm exec tsx scripts/migrate-mongo-to-postgres.ts",
