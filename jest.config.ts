@@ -12,6 +12,9 @@ const config: Config = {
   transform: {
     "^.+\\.tsx?$": ["ts-jest", { tsconfig: { jsx: "react", target: "es2017" } }],
   },
+  // CI imports modules that leave pg pools / timers open; all tests pass but
+  // Jest would otherwise hang waiting for handles to close.
+  forceExit: process.env.CI === "true",
 };
 
 export default config;

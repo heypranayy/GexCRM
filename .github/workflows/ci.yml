@@ -82,7 +82,7 @@ jobs:
         # __tests__/invoices/ (currently only lifecycle.test.ts) and are
         # excluded here — keep this pattern and the integration job's test
         # list in sync when adding DB-backed suites.
-        run: pnpm exec jest --ci --testPathIgnorePatterns "__tests__/invoices/lifecycle"
+        run: pnpm exec jest --ci --forceExit --testPathIgnorePatterns "__tests__/invoices/lifecycle"
 
   integration:
     name: Integration (fresh-DB migrations + DB suites)

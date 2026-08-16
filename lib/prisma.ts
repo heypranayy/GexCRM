@@ -21,8 +21,9 @@ const prismaClientSingleton = () => {
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 
-  // Ensure graceful shutdown on hot reload in development
-  if (process.env.NODE_ENV !== "production") {
+  // Graceful shutdown hooks are for local dev hot reload only — in test/CI
+  // they keep Jest alive after the suite finishes.
+  if (process.env.NODE_ENV === "development") {
     // Clean up on process termination
     const cleanup = async () => {
       await client.$disconnect();
